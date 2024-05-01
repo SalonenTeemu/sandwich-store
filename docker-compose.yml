@@ -1,0 +1,89 @@
+version: "3"
+
+services:
+  server-a:
+    image: node:21.7-slim 
+    container_name: 'server-a'
+    environment:
+      TASK_QUEUE: "task-queue"
+      READY_QUEUE: "task-ready-queue"
+      RABBIT_HOST: "rapid-runner-rabbit:5672"
+      JWT_SECRET: "62596476844d83fb526684db343dfa2f28f03ef8f91406ebd76fcfd6d3bfb45f"
+      COOKIE_SECRET: "2nGxLWSL0#nVKCsV#QSLlQ7JMaV&djLT"
+    depends_on:
+      database:
+        condition: service_started
+      rapid-runner-rabbit:
+        condition: service_started
+    restart: on-failure:10
+    command: bash -c "npm install && npm run start"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/server-a:/server-a
+    working_dir: /server-a
+    networks:
+      - backend
+
+  rapid-runner-rabbit:
+    image: rabbitmq:3.13-management
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    expose:
+      - "5672"
+    networks:
+      - backend
+
+  server-b:
+      image: node:21.7-slim
+      container_name: 'server-b'
+      depends_on:
+        rapid-runner-rabbit:
+          condition: service_started
+      restart: always
+      command: bash -c "npm install && npm run start"
+      environment:
+        TASK_QUEUE: "task-queue"
+        READY_QUEUE: "task-ready-queue"
+        RABBIT_HOST: "rapid-runner-rabbit:5672"
+      volumes:
+      - ./backend/server-b:/server-b
+      working_dir: /server-b
+      networks:
+        - backend
+
+  frontend:
+    image: node:21.7-slim
+    container_name: 'frontend'
+    depends_on:
+      - server-a 
+      - server-b
+    command: bash -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+    - ./frontend:/frontend
+    working_dir: /frontend
+    ports:
+      - 5173:5173
+  
+  database:
+    image: postgres:16.0-alpine
+    container_name: 'database'
+    restart: on-failure:10
+    ports:
+      - "5432:5432"
+    volumes:
+      - "db-data:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  db-data:

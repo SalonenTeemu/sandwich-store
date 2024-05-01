@@ -1,0 +1,993 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "This is the OpenAPI 3.0 API for the sandwich store",
+    "version": "1.1.0",
+    "title": "Make me a sandwich",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "order",
+      "description": "Sandwich orders"
+    },
+    {
+      "name": "sandwich",
+      "description": "Types of sandwich that users can order"
+    },
+    {
+      "name": "user",
+      "description": "User management"
+    }
+  ],
+  "paths": {
+    "/order": {
+      "get": {
+        "tags": ["order"],
+        "summary": "Get a list of all orders. Empty array if no orders are found.",
+        "description": "Requires sign in. User with role admin gets all orders of all users, customer gets own orders",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrayOfOrders"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["order"],
+        "summary": "Add an order for a sandwich",
+        "description": "Requires sign in to order",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewOrder"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Sandwich not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/order/{orderId}": {
+      "get": {
+        "tags": ["order"],
+        "summary": "Find an order by its ID",
+        "description": "Requires sign in. Admin gets order and customer gets if one of own orders. IDs must be positive integers",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "ID of the order that needs to be fetched",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Order not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/order/{orderId}/status": {
+      "get": {
+        "tags": ["order"],
+        "summary": "Endpoint for long polling the order status update",
+        "description": "Requires sign in. Customer can poll own orders, admin all orders.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "ID of the order that is waited to be ready",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Order not found"
+          },
+          "408": {
+            "description": "Request timeout"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/sandwich": {
+      "get": {
+        "tags": ["sandwich"],
+        "summary": "Get a list of all sandwiches. Empty array if no sandwiches are found.",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrayOfSandwiches"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["sandwich"],
+        "summary": "Add a new sandwich to the store.",
+        "description": "Requires sign in and admin role.",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSandwich"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sandwich"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/sandwich/{sandwichId}": {
+      "get": {
+        "tags": ["sandwich"],
+        "summary": "Find sandwich by ID",
+        "description": "Returns a single sandwich",
+        "parameters": [
+          {
+            "name": "sandwichId",
+            "in": "path",
+            "description": "ID of sandwich to return",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sandwich"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "404": {
+            "description": "Sandwich not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["sandwich"],
+        "summary": "Updates a sandwich in the store with JSON in body",
+        "description": "Requires sign in and admin role.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "sandwichId",
+            "in": "path",
+            "description": "ID of sandwich to return",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSandwich"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sandwich"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Sandwich not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["sandwich"],
+        "summary": "Deletes a sandwich",
+        "description": "Requires sign in and admin role.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "sandwichId",
+            "in": "path",
+            "description": "Sandwich id to delete",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted successfully"
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Sandwich not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/sandwich/sandwichUtils": {
+      "get": {
+        "tags": ["sandwich"],
+        "summary": "Fetch breadtypes and toppings",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "breadTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "toppings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "breadTypes": ["oat", "rye", "wheat"],
+                  "toppings": [
+                    { "id": 1, "name": "lettuce" },
+                    { "id": 2, "name": "tomato" }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": ["user"],
+        "summary": "Get all users",
+        "description": "Requires sign in. User with role admin gets all users, customer gets own user data.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrayOfUsers"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user/register": {
+      "post": {
+        "tags": ["user"],
+        "summary": "Register user",
+        "description": "Returns created user data and sets cookie token in response",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              },
+              "examples": {
+                "New user": {
+                  "value": {
+                    "username": "username",
+                    "email": "email@gmail.com",
+                    "password": "password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "409": {
+            "description": "Email/Username already in use"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user/check-status": {
+      "get": {
+        "tags": ["user"],
+        "summary": "Checks sign in status and responds with user data if logged in",
+        "responses": {
+          "200": {
+            "description": "User signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "User not signed in"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user/login": {
+      "post": {
+        "tags": ["user"],
+        "summary": "Logs user into the system",
+        "description": "Sets token as cookie in response",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username/password supplied"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user/logout": {
+      "post": {
+        "tags": ["user"],
+        "summary": "Logs out the current logged-in user session",
+        "description": "Clears token cookie in response",
+        "responses": {
+          "204": {
+            "description": "Successful operation"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/user/{username}": {
+      "get": {
+        "tags": ["user"],
+        "summary": "Get user by username",
+        "description": "Requires sign in. User with role admin can get data of all users, customer gets own user data.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "The name that needs to be fetched.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["user"],
+        "summary": "Update user",
+        "description": "Requires sign in. User with role admin can update any user, customer can update own data.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "Name that needs to be updated",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUser"
+              },
+              "examples": {
+                "Update email and password": {
+                  "value": {
+                    "email": "email@email.com",
+                    "password": "password"
+                  }
+                },
+                "Update role": {
+                  "value": {
+                    "role": "admin"
+                  }
+                },
+                "Update all": {
+                  "value": {
+                    "email": "email@email.com",
+                    "password": "password",
+                    "role": "admin"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid user supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "Email/Username already in use"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["user"],
+        "summary": "Delete user",
+        "description": "Requires sign in. User with role admin can get delete any user, customer can delete own account.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "The name that needs to be deleted",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid username supplied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sandwichId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "description": "Order Status",
+            "enum": ["ordered", "received", "inQueue", "ready", "failed"]
+          },
+          "customer": {
+            "type": "string"
+          }
+        },
+        "xml": {
+          "name": "Order"
+        },
+        "example": {
+          "sandwichId": 1,
+          "id": 0,
+          "status": "ordered",
+          "customer": "username"
+        }
+      },
+      "NewOrder": {
+        "type": "object",
+        "properties": {
+          "sandwichId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "xml": {
+          "name": "NewOrder"
+        },
+        "example": {
+          "sandwichId": 1
+        }
+      },
+      "ArrayOfOrders": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Order"
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "xml": {
+          "name": "User"
+        },
+        "example": {
+          "id": 0,
+          "username": "username",
+          "email": "email@email.com",
+          "role": "customer"
+        }
+      },
+      "NewUser": {
+        "type": "object",
+        "required": ["username", "email", "password"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "xml": {
+          "name": "User"
+        }
+      },
+      "UpdateUser": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": ["customer", "admin"]
+          }
+        },
+        "xml": {
+          "name": "User"
+        }
+      },
+      "LoginUser": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "username": "admin",
+          "password": "admin"
+        },
+        "xml": {
+          "name": "LoginUser"
+        }
+      },
+      "Topping": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "xml": {
+          "name": "Tag"
+        }
+      },
+      "ToppingArray": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "xml": {
+          "name": "Tag"
+        },
+        "example": [1,2,3]
+      },
+      "Sandwich": {
+        "type": "object",
+        "required": ["breadType", "name"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "example": "my-super-sandwich"
+          },
+          "breadType": {
+            "type": "string",
+            "description": "bread used in the sandwich",
+            "enum": ["oat", "rye", "wheat", "sourdough", "corn"]
+          },
+          "toppings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Topping"
+            }
+          }
+        },
+        "xml": {
+          "name": "Sandwich"
+        },
+        "example": {
+          "id": 1,
+          "name": "my-super-sandwich",
+          "toppings": [{"id": 1, "name": "Lettuce"}, {"id": 2, "name": "Tomato"}],
+          "breadType": "oat"
+        }
+      },
+      "UpdateSandwich": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "example": "my-super-sandwich"
+          },
+          "breadType": {
+            "type": "string",
+            "description": "bread used in the sandwich",
+            "enum": ["oat", "rye", "wheat", "sourdough", "corn"]
+          },
+          "toppings": {
+            "items": {
+              "$ref": "#/components/schemas/ToppingArray"
+            }
+          }
+        },
+        "xml": {
+          "name": "Sandwich"
+        },
+        "example": {
+          "id": 1,
+          "name": "my-super-sandwich",
+          "toppings": [1,2,3],
+          "breadType": "oat"
+        }
+      },
+      "ArrayOfSandwiches": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Sandwich"
+        }
+      },
+      "ArrayOfUsers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/User"
+        }
+      }
+    }
+  }
+}
