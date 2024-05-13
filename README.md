@@ -1,6 +1,6 @@
 # sandwich-store
 
-Sandwich store app for ordering sandwiches.
+Sandwich store application for ordering sandwiches implemented as a course group project.
 
 ### System architecture
 
